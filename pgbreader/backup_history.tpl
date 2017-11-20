@@ -72,12 +72,12 @@ function bytes(bytes, label) {{
 }}
 
 $(function() {{
-    var mchart_cbv = Highcharts.chart('container_backup_volumes', {{
+    var mchart_cbv = Highcharts.chart('container_backup_infos', {{
         chart: {{
             zoomType: 'x'
         }},
         title: {{
-            text: 'Volume of backed-up data and original data'
+            text: 'Backup infos'
         }},
         subtitle: {{
             text: 'Source: pgbackrest manifests'
@@ -86,103 +86,127 @@ $(function() {{
             categories: backup_label['data'],
             crosshair: true
         }},
-       yAxis: {{
+       yAxis: [{{
+            id : 'Volume',
+            labels: {{
+                 formatter: function() {{
+                     return bytes(this.value, true);
+                 }}
+            }},
             title: {{
-                text: 'Volume (bytes)'
+                text: 'Volume'
             }}
-        }},
+        }},{{
+            id : 'Duration',
+            labels: {{
+            formatter: function() {{
+                 return  secondsTimeSpanToDHMS(this.value);
+            }},
+            style: {{
+                 color: Highcharts.getOptions().colors[4]
+            }}
+         }},
+            title: {{
+                 text: 'Duration',
+                 style: {{
+                     color: Highcharts.getOptions().colors[4]
+                 }}
+             }},
+             opposite: true
+         }},{{
+             id : 'Items',
+             labels: {{
+                style: {{
+                    color: Highcharts.getOptions().colors[5]
+                }}
+             }},
+             title: {{
+                 text: 'Items',
+                 style: {{
+                    color: Highcharts.getOptions().colors[5]
+                 }}
+            }},
+            opposite: true
+         }},{{
+            id : '% compression',
+            labels: {{
+                 style: {{
+                     color: Highcharts.getOptions().colors[6]
+                 }}
+            }},
+            title: {{
+                text: '% compression',
+                style: {{
+                     color: Highcharts.getOptions().colors[6]
+                }}
+            }},
+            opposite: true
+         }}],
         legend: {{
-            layout: 'vertical',
-            align: 'right',
-            verticalAlign: 'middle'
+            layout: 'horizontal',
+            align: 'center',
+            verticalAlign: 'bottom'	
+        }},
+         tooltip: {{
+              formatter: function () {{
+                  var s = '<b>' + this.x + '</b>';
+
+                  $.each(this.points, function () {{
+                       s += '<br/>' + this.series.name + ': '
+                       switch (this.series.name){{
+                           case duree['name']:
+                               s += secondsTimeSpanToDHMS(this.y);
+                               break;
+                           case backup_items['name']:
+                               s += this.y + ' items<br/>';
+                               break;
+                           case compression['name']:
+                               s += this.y + '%<br/>';
+                               break;
+                           default:
+                               s += bytes(this.y, true);
+                        }}
+                   }});
+
+                   return s;
+                }},
+                shared: true
         }},
         series: [{{
             name: backup_size['name'],
-            data: backup_size['data']
+            data: backup_size['data'],
+            yAxis: 0
         }}, {{
             name: partial_backup_size['name'],
-            data: partial_backup_size['data']
+            data: partial_backup_size['data'],
+            yAxis: 0,
+            visible: false		
         }}, {{
             name: original_size['name'],
-            data: original_size['data']
+            data: original_size['data'],
+            yAxis: 0
         }}, {{
             name: partial_original_size['name'],
-            data: partial_original_size['data']
-        }}],
-        tooltip: {{
-            formatter: function() {{
-                return bytes(this.y, true);
-            }}
-        }}
-    }});
-    var mchart_cbd = Highcharts.chart('container_backup_duration', {{
-        chart: {{
-            zoomType: 'x'
-        }},
-        title: {{
-            text: 'Length of backups'
-        }},
-        subtitle: {{
-            text: 'Source: pgbackrest manifests'
-        }},
-        xAxis: {{
-            categories: backup_label['data'],
-            crosshair: true
-        }},
-        yAxis: {{
-            title: {{
-                text: 'Duration'
-            }},
-            labels: {{
-                formatter: function() {{
-                    return  secondsTimeSpanToDHMS(this.value);
-                }}               
-            }}
-        }},
-        legend: {{
-            layout: 'vertical',
-            align: 'right',
-            verticalAlign: 'middle'
-        }},
-        series: [{{
+            data: partial_original_size['data'],
+            yAxis: 0,
+            visible: false		
+        }}, {{
             name: duree['name'],
-            data: duree['data']
-        }}],
-        tooltip: {{
-            formatter: function() {{
-                return  '<b>' + this.series.name +'</b><br/>' + secondsTimeSpanToDHMS(this.y);
-            }}
-        }}
-    }});
-    var mchart_cbn = Highcharts.chart('container_backup_nitems', {{
-        chart: {{
-            zoomType: 'x'
-        }},
-        title: {{
-            text: 'Scanned items per backup'
-        }},
-        subtitle: {{
-            text: 'Source: pgbackrest manifests'
-        }},
-        xAxis: {{
-            categories: backup_label['data'],
-            crosshair: true
-        }},
-        yAxis: {{
-            title: {{
-                text: 'Units'
-            }}
-        }},
-        legend: {{
-            layout: 'vertical',
-            align: 'right',
-            verticalAlign: 'middle'
-        }},
-        series: [{{
+            data: duree['data'],
+            yAxis: 1
+        }}, {{
             name: backup_items['name'],
-            data: backup_items['data']
+            data: backup_items['data'],
+            yAxis: 2,
+            visible: false		
+        }}, {{
+           name: compression['name'],
+           data: compression['data'],
+           yAxis: 3,
+           visible: false			
         }}]
     }});
+
     var mchart_cbt = Highcharts.chart('container_backup_time_since_last', {{
         chart: {{
             zoomType: 'x'
@@ -204,63 +228,25 @@ $(function() {{
             labels: {{
                 formatter: function() {{
                     return  secondsTimeSpanToDHMS(this.value);
-                }}               
+                }}
             }}
         }},
         legend: {{
-            layout: 'vertical',
-            align: 'right',
-            verticalAlign: 'middle'
+            layout: 'horizontal',
+            align: 'center',
+            verticalAlign: 'bottom'
+        }},
+        tooltip: {{
+            formatter: function() {{
+                return  '<b>' + this.x + '</b><br/>'+ this.series.name +': ' + secondsTimeSpanToDHMS(this.y);
+            }}
         }},
         series: [{{
             name: time_since_last_backup['name'],
             data: time_since_last_backup['data']
         }}],
-        tooltip: {{
-            formatter: function() {{
-                return  '<b>' + this.series.name +'</b><br/>' + secondsTimeSpanToDHMS(this.y);
-            }}
-        }}
     }});
-    var mchart_cc = Highcharts.chart('container_compression', {{
-        chart: {{
-            zoomType: 'x'
-        }},
-        title: {{
-            text: 'Compression ratio'
-        }},
-        subtitle: {{
-            text: 'Source: pgbackrest manifests'
-        }},
-        xAxis: {{
-            categories: backup_label['data'],
-            crosshair: true
-        }},
-        yAxis: {{
-            title: {{
-                text: '%'
-            }},
-            labels: {{
-                formatter: function() {{
-                    return  this.value + '%';
-                }}               
-            }}               
-        }},
-        legend: {{
-            layout: 'vertical',
-            align: 'right',
-            verticalAlign: 'middle'
-        }},
-        series: [{{
-            name: compression['name'],
-            data: compression['data']
-        }}],
-        tooltip: {{
-            formatter: function() {{
-                return  '<b>' + this.series.name +'</b><br/>' + this.y + '%';
-            }}
-        }}
-    }});
+
     var mchart_cc = Highcharts.chart('container_archives', {{
         chart: {{
             zoomType: 'x'
@@ -281,9 +267,21 @@ $(function() {{
             }}
         }},
         legend: {{
-            layout: 'vertical',
-            align: 'right',
-            verticalAlign: 'middle'
+            layout: 'horizontal',
+            align: 'center',
+            verticalAlign: 'bottom'	
+        }},
+        tooltip: {{
+              formatter: function () {{
+                  var s = '<b>' + this.x + '</b>';
+
+                  $.each(this.points, function () {{
+                       s += '<br/>' + this.series.name + ': ' + this.y + ' (' + bytes(this.y*16,true) + ' without compression)';
+                   }});
+
+                   return s;
+                }},
+                shared: true
         }},
         series: [{{
             name: archive_between_backup['name'],
@@ -291,15 +289,12 @@ $(function() {{
         }}, {{
             name: archive_during_backup['name'],
             data: archive_during_backup['data']
-        }}],
-        tooltip: {{
-            formatter: function() {{
-                return  '<b>' + this.series.name +'</b><br/>' + this.y;
-            }}
-        }}
+        }}]
     }});
 }});
 </script>
+<h1>Pgbackrest info<h1>
+<h2>Server info</h2>
 <p>pgbackrest version : {info_backrest_version}</p>
 <p>database version : {info_database_version}</p>
 <p>database system-id : {info_database_system_id}</p>
@@ -309,11 +304,10 @@ $(function() {{
     {event_list:repeat:<li>{{item}}</li>}
     </ul>
 </p>
-<div id="container_backup_volumes" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
-<div id="container_backup_duration" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
-<div id="container_backup_nitems" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
+<h2>Backup stats</h2>
+<div id="container_backup_infos" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
 <div id="container_backup_time_since_last" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
-<div id="container_compression" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
+<h2>Wals stats</h2>
 <div id="container_archives" style="min-width: 310px; height: 400px; margin: 0 auto"></div>
 </body>
 </html>
